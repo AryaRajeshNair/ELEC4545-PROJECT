@@ -1,0 +1,22 @@
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+FIGURES_DIR = BASE_DIR / "figures"
+RESULTS_DIR = BASE_DIR / "results"
+
+SECTOR_TICKERS = ["XLC", "XLY", "XLP", "XLE", "XLF", "XLI", "XLB", "XLK", "XLV", "XLU", "XLRE"]
+START_DATE = "2015-01-01"
+TEST_START = "2020-01-01"
+TRAIN_WINDOW_MONTHS = 48
+DEFAULT_LOOKBACK_MONTHS = 36
+DEFAULT_MIN_OBS = 12
+DEFAULT_MAX_WEIGHT = 0.20
+DEFAULT_MIN_WEIGHT = -0.20
+DEFAULT_TARGET_VOL = 0.12
+DEFAULT_TX_COST = 0.001
+ALLOW_SHORT = True
+NET_EXPOSURE = 0.0
+OPTIMIZER_RISK_AVERSION = 2.0
+
+FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
