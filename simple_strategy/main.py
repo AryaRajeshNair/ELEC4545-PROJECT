@@ -23,9 +23,10 @@ from config import (
     FIGURES_DIR,
 )
 from data_prep import create_features, download_market_data
-from egarch import (
+from garch import (
     forecast_sector_volatility_garch,
     run_daily_diagnostics,
+    test_stationarity_comprehensive,
 )
 from ml_model import (
     calculate_average_feature_importance,
@@ -134,6 +135,14 @@ def main():
     # Step 1b: Run diagnostics on DAILY returns
     print("\n[STEP 1b] Running GARCH diagnostics on DAILY returns...")
     daily_diagnostics = run_daily_diagnostics(daily_returns, SECTOR_TICKERS, output_dir=FIGURES_DIR)
+    
+    # Step 1c: Run stationarity test on DAILY returns (for report)
+    print("\n[STEP 1c] Running stationarity & volatility clustering tests (for report)...")
+    stationarity_results, stationarity_summary = test_stationarity_comprehensive(
+        daily_returns,
+        SECTOR_TICKERS,
+        output_file=RESULTS_DIR / "stationarity_test_results.csv" if RESULTS_DIR.exists() else None
+    )
     
     # Step 2: Create features
     print("\n[STEP 2] Creating features with technical indicators...")

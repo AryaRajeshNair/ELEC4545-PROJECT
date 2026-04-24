@@ -16,7 +16,7 @@ from config import (
     OPTIMIZER_RISK_AVERSION,
     SECTOR_TICKERS,
 )
-from egarch import get_portfolio_volatility_forecast_no_lookahead
+from garch import get_portfolio_volatility_forecast_no_lookahead
 
 
 def equal_weights(index_like):
