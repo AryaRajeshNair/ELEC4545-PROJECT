@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from config import SECTOR_TICKERS, START_DATE
+from simple_strategy.config import SECTOR_TICKERS, START_DATE
 
 
 def rank_normalize(df: pd.DataFrame) -> pd.DataFrame:
@@ -279,6 +279,7 @@ def create_features(
     return features, vix_norm, tnx_norm
 
 
+# we do not use the vix and tnx features for this project but do prepare them for future work, using macro features in the model
 def prepare_features_for_ml(features, vix_norm, tnx_norm):
     """Prepare features for machine learning by aligning all data."""
     common_index = features["mom_1m"].index

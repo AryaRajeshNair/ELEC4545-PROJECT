@@ -4,12 +4,16 @@ import warnings
 warnings.filterwarnings('ignore')
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.*')
+warnings.filterwarnings('ignore', message='.*delayed.*should be used.*')
+warnings.filterwarnings('ignore', message='.*should be used with.*')
+warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.delayed.*')
 
 import json
 import pandas as pd
 import numpy as np
 
-from config import (
+from simple_strategy.config import (
     ALLOW_SHORT,
     DEFAULT_MAX_WEIGHT,
     DEFAULT_MIN_WEIGHT,
@@ -22,18 +26,19 @@ from config import (
     TRAIN_WINDOW_MONTHS,
     FIGURES_DIR,
 )
-from data_prep import create_features, download_market_data
-from egarch import (
+from simple_strategy.data_prep import create_features, download_market_data
+from simple_strategy.garch import (
     forecast_sector_volatility_garch,
     run_daily_diagnostics,
 )
-from ml_model import (
+from simple_strategy.ml_model import (
     calculate_average_feature_importance,
     evaluate_predictions,
     run_rolling_predictions,
     test_prediction_value,
 )
-from portfolio import run_forecast_driven_backtest, run_simple_momentum_backtest
+from simple_strategy.portfolio import run_forecast_driven_backtest, run_simple_momentum_backtest
+from simple_strategy.figures import generate_all_figures
 
 
 def save_outputs(
@@ -227,6 +232,30 @@ def main():
         daily_diagnostics,
     )
 
+    # Step 9: Generate figures
+    print("\n[STEP 9] Generating figures...")
+    try:
+        monthly_results_df = pd.read_csv(
+            RESULTS_DIR / "backtest_monthly_results.csv",
+            index_col=0,
+            parse_dates=True
+        )
+        generate_all_figures(
+            forecast_backtest=forecast_backtest,
+            baseline_backtest=baseline_backtest,
+            predictions=predictions,
+            actual_returns=actual_returns,
+            sector_vol_forecasts=sector_vol_forecasts,
+            feature_importance=feature_importance,
+            monthly_results_df=monthly_results_df,
+            figures_dir=FIGURES_DIR,
+        )
+        print(f"✓ Figures saved to {FIGURES_DIR}")
+    except Exception as e:
+        print(f"⚠ Figure generation failed: {e}")
+        import traceback
+        traceback.print_exc()
+
     # Final results
     print("\n" + "=" * 80)
     print("RUN COMPLETE")
@@ -255,10 +284,6 @@ def main():
     print("\n" + "=" * 80)
     print("All results saved to 'results/' directory")
     print("=" * 80)
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":

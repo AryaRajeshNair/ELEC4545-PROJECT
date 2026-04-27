@@ -16,6 +16,9 @@ warnings.filterwarnings('ignore')
 # Suppress sklearn parallel job warnings
 warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.*')
 warnings.filterwarnings('ignore', message='.*should be used with.*')
+warnings.filterwarnings('ignore', message='.*delayed.*should be used.*')
+warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.delayed.*')
+warnings.filterwarnings('ignore', message='.*delayed.*Parallel.*')
 
 
 # ============================================================================

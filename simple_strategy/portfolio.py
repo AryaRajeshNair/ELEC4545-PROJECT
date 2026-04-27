@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from config import (
+from simple_strategy.config import (
     ALLOW_SHORT,
     DEFAULT_MAX_WEIGHT,
     DEFAULT_MIN_WEIGHT,
@@ -16,7 +16,7 @@ from config import (
     OPTIMIZER_RISK_AVERSION,
     SECTOR_TICKERS,
 )
-from egarch import get_portfolio_volatility_forecast_no_lookahead
+from simple_strategy.garch import get_portfolio_volatility_forecast_no_lookahead
 
 
 def equal_weights(index_like):

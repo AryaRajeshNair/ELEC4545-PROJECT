@@ -6,13 +6,15 @@ from scipy import stats
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 
-from config import SECTOR_TICKERS
-from data_prep import safe_get
+from simple_strategy.config import SECTOR_TICKERS
+from simple_strategy.data_prep import safe_get
 import warnings
-warnings.filterwarnings('ignore', category=UserWarning, module='sklearn.utils.parallel')
-warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
-warnings.filterwarnings('ignore', category=UserWarning, module='sklearn.utils.parallel')
-warnings.filterwarnings('ignore', category=UserWarning, module='joblib')
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.*')
+warnings.filterwarnings('ignore', message='.*joblib workers.*')
+warnings.filterwarnings('ignore', message='.*should be used with.*')
+warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.delayed.*')
+warnings.filterwarnings('ignore', message='.*delayed.*Parallel.*')
 # Explicit list so training and inference are guaranteed to use the same feature order.
 SECTOR_FEATURES = [
     "mom_1m",
