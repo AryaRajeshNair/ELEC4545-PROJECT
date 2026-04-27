@@ -90,6 +90,136 @@ def print_filtering_summary(original_len, filtered_len, sector_tickers):
 
 
 # ============================================================================
+# STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTICS (For Report)
+# ============================================================================
+
+def test_stationarity_comprehensive(daily_returns, sector_tickers, output_file=None):
+    """
+    Comprehensive stationarity test on DAILY RETURNS for report inclusion.
+    
+    Tests:
+    1. ADF (Augmented Dickey-Fuller): Tests for stationarity (null: unit root)
+       - p < 0.05 → Reject null → Stationary ✓
+    
+    2. KPSS (Kwiatkowski-Phillips-Schmidt-Shin): Tests for stationarity (null: stationary)
+       - p > 0.05 → Fail to reject null → Stationary ✓
+    
+    3. Ljung-Box on squared returns: Tests for volatility clustering/ARCH effects
+       - p < 0.05 → Reject null → Has ARCH/volatility clustering ✓ (justifies GARCH)
+    
+    Args:
+        daily_returns: DataFrame of DAILY returns (DatetimeIndex x Sectors)
+        sector_tickers: List of sector names
+        output_file: Optional path to save table to CSV
+    
+    Returns:
+        DataFrame with test results and summary dict
+    """
+    print("\n" + "=" * 100)
+    print("STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTIC (FOR REPORT)")
+    print("=" * 100)
+    
+    results_list = []
+    stationary_count = 0
+    arch_count = 0
+    
+    for sector in sector_tickers:
+        # Get returns and clean
+        returns = daily_returns[sector].dropna().copy()
+        returns = returns.replace([np.inf, -np.inf], np.nan).dropna()
+        
+        if len(returns) < 50:
+            print(f"\n⚠ {sector}: Insufficient data ({len(returns)} days) - SKIPPING")
+            continue
+        
+        # Test 1: ADF on returns
+        adf_result = adfuller(returns, autolag='AIC')
+        adf_pval = adf_result[1]
+        adf_stat = adf_result[0]
+        adf_stationary = adf_pval < 0.05
+        
+        # Test 2: KPSS on returns
+        try:
+            kpss_result = kpss(returns, regression='c', nlags='auto')
+            kpss_pval = kpss_result[1]
+            kpss_stat = kpss_result[0]
+            kpss_stationary = kpss_pval > 0.05
+        except Exception as e:
+            kpss_pval = np.nan
+            kpss_stat = np.nan
+            kpss_stationary = False
+        
+        # Test 3: Ljung-Box on squared returns (ARCH effects)
+        squared_returns = returns ** 2
+        try:
+            lb_result = acorr_ljungbox(squared_returns, nlags=10, return_df=True)
+            lb_pval = lb_result['lb_pvalue'].iloc[0]  # Use first lag
+            lb_has_arch = lb_pval < 0.05
+        except Exception as e:
+            lb_pval = np.nan
+            lb_has_arch = False
+        
+        # Stationarity: Both ADF and KPSS must agree
+        is_stationary = adf_stationary and kpss_stationary
+        if is_stationary:
+            stationary_count += 1
+        
+        if lb_has_arch:
+            arch_count += 1
+        
+        # Determine status symbols
+        adf_symbol = "✓" if adf_stationary else "✗"
+        kpss_symbol = "✓" if kpss_stationary else "✗"
+        arch_symbol = "✓" if lb_has_arch else "✗"
+        stat_symbol = "✓ STATIONARY" if is_stationary else "✗ NON-STATIONARY"
+        
+        results_list.append({
+            'Sector': sector,
+            'ADF p-val': f"{adf_pval:.4f} {adf_symbol}",
+            'KPSS p-val': f"{kpss_pval:.4f} {kpss_symbol}",
+            'Ljung-Box p-val': f"{lb_pval:.4f} {arch_symbol}",
+            'Status': stat_symbol
+        })
+    
+    # Create results DataFrame
+    results_df = pd.DataFrame(results_list)
+    
+    # Print formatted table
+    print("\n" + "-" * 100)
+    print(results_df.to_string(index=False))
+    print("-" * 100)
+    
+    # Print summary
+    print("\nSUMMARY FOR REPORT:")
+    print(f"  • Stationarity (ADF + KPSS both agree): {stationary_count}/{len(sector_tickers)} sectors ✓")
+    print(f"  • Volatility clustering (Ljung-Box p < 0.05): {arch_count}/{len(sector_tickers)} sectors ✓")
+    
+    if stationary_count == len(sector_tickers):
+        print(f"\n  ✓ CONCLUSION: All {len(sector_tickers)} sectors are stationary.")
+        print(f"    GARCH modeling is valid and appropriate for volatility forecasting.")
+    else:
+        print(f"\n  ⚠ CAUTION: {len(sector_tickers) - stationary_count} sector(s) are non-stationary.")
+        print(f"    Consider differencing or transformation before GARCH modeling.")
+    
+    if arch_count > 0:
+        print(f"\n  ✓ Volatility clustering detected in {arch_count} sector(s).")
+        print(f"    This justifies the use of GARCH models for volatility forecasting.")
+    
+    print("\n" + "=" * 100)
+    
+    # Save to file if requested
+    if output_file:
+        results_df.to_csv(output_file, index=False)
+        print(f"\n  Results saved to: {output_file}")
+    
+    return results_df, {
+        'total_sectors': len(sector_tickers),
+        'stationary_count': stationary_count,
+        'arch_count': arch_count
+    }
+
+
+# ============================================================================
 # GARCH VOLATILITY FORECASTING WITH MULTI-STEP AGGREGATION
 # ============================================================================
 
