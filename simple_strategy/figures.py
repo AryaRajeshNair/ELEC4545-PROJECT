@@ -1,8 +1,3 @@
-"""
-Figure generation module for quantitative trading strategy backtest results.
-Generates 7 publication-quality figures and saves to figures/ directory.
-"""
-
 import matplotlib
 matplotlib.use("Agg")  # non-interactive backend
 import matplotlib.pyplot as plt
@@ -109,11 +104,10 @@ def fig1_equity_curves(forecast_backtest, baseline_backtest, figures_dir):
     fig.savefig(figures_dir / "fig1_equity_curves.png", 
                 bbox_inches="tight", facecolor="white", dpi=150)
     plt.close(fig)
-    print("  ✓ fig1_equity_curves.png")
+
 
 
 def fig2_prediction_quality(predictions, actual_returns, figures_dir):
-    """Figure 2: Prediction quality scatter + rolling accuracy."""
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(14, 5))
     
     # Panel A: Scatter plot of predictions vs actuals
@@ -229,15 +223,12 @@ def fig2_prediction_quality(predictions, actual_returns, figures_dir):
     fig.savefig(figures_dir / "fig2_prediction_quality.png",
                 bbox_inches="tight", facecolor="white", dpi=150)
     plt.close(fig)
-    print("  ✓ fig2_prediction_quality.png")
 
 
 def fig3_garch_volatility(sector_vol_forecasts, figures_dir):
-    """Figure 3: GARCH volatility forecasts over time."""
     fig, ax = plt.subplots(figsize=(12, 5))
     
     if sector_vol_forecasts is None or sector_vol_forecasts.empty:
-        print("  ⚠ Skipping fig3_garch_volatility.png (no data)")
         plt.close(fig)
         return
     
@@ -287,32 +278,26 @@ def fig3_garch_volatility(sector_vol_forecasts, figures_dir):
     fig.savefig(figures_dir / "fig3_garch_volatility.png",
                 bbox_inches="tight", facecolor="white", dpi=150)
     plt.close(fig)
-    print("  ✓ fig3_garch_volatility.png")
 
 
 def fig4_portfolio_weights(forecast_backtest, figures_dir):
-    """Figure 4: Portfolio weights over time (stacked area)."""
     fig, ax = plt.subplots(figsize=(14, 6))
     
     # Extract weights from trade log
     trade_log = forecast_backtest.get("trade_log_df")
     if trade_log is None or trade_log.empty:
-        print("  ⚠ Skipping fig4_portfolio_weights.png (no trade log)")
         plt.close(fig)
         return
     
-    # Get sector columns (should be the numeric columns with weights)
     from simple_strategy.config import SECTOR_TICKERS
-    
-    # Filter to only sector columns that exist
+   
     sector_cols = [s for s in SECTOR_TICKERS if s in trade_log.columns]
     
     if len(sector_cols) == 0:
         print("  ⚠ Skipping fig4_portfolio_weights.png (no sector weight columns)")
         plt.close(fig)
         return
-    
-    # Sort by date if not already
+ 
     weights_df = trade_log[sector_cols].copy()
     if not isinstance(weights_df.index, pd.DatetimeIndex):
         weights_df.index = pd.to_datetime(weights_df.index)
@@ -337,7 +322,6 @@ def fig4_portfolio_weights(forecast_backtest, figures_dir):
     ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1.0))
     plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
     
-    # Legend outside plot
     ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1), borderaxespad=0,
              fontsize=8, ncol=1, framealpha=0.95)
     
@@ -345,15 +329,13 @@ def fig4_portfolio_weights(forecast_backtest, figures_dir):
     fig.savefig(figures_dir / "fig4_portfolio_weights.png",
                 bbox_inches="tight", facecolor="white", dpi=150)
     plt.close(fig)
-    print("  ✓ fig4_portfolio_weights.png")
+
 
 
 def fig5_return_distribution(monthly_results_df, figures_dir):
-    """Figure 5: Monthly return distribution comparison."""
     fig, (ax_left, ax_right) = plt.subplots(1, 2, figsize=(12, 5))
     
     if monthly_results_df is None or monthly_results_df.empty:
-        print("  ⚠ Skipping fig5_return_distribution.png (no data)")
         plt.close(fig)
         return
     
@@ -365,7 +347,6 @@ def fig5_return_distribution(monthly_results_df, figures_dir):
         plt.close(fig)
         return
     
-    # Panel A: Overlapping histograms
     ax_left.hist(strategy_returns, bins=25, color=MID_BLUE, alpha=0.55,
                 edgecolor="white", linewidth=0.4, label="Strategy")
     ax_left.hist(baseline_returns, bins=25, color=ORANGE, alpha=0.55,
@@ -420,22 +401,17 @@ def fig5_return_distribution(monthly_results_df, figures_dir):
     fig.savefig(figures_dir / "fig5_return_distribution.png",
                 bbox_inches="tight", facecolor="white", dpi=150)
     plt.close(fig)
-    print("  ✓ fig5_return_distribution.png")
 
 
 def fig6_feature_importance(feature_importance, figures_dir):
-    """Figure 6: Feature importance."""
     fig, ax = plt.subplots(figsize=(9, 6))
     
     if feature_importance is None or feature_importance.empty:
-        print("  ⚠ Skipping fig6_feature_importance.png (no feature importance data)")
         plt.close(fig)
         return
-    
-    # Sort by importance
+
     fi_sorted = feature_importance.sort_values("importance", ascending=True)
     
-    # Clean up feature names
     feature_name_map = {
         "mom_1m": "Mom 1m",
         "mom_3m": "Mom 3m",
@@ -494,61 +470,39 @@ def generate_all_figures(
     monthly_results_df,
     figures_dir,
 ):
-    """
-    Generate all 6 figures and save to figures_dir.
     
-    Parameters
-    ----------
-    forecast_backtest : dict
-        Results from forecast-driven backtest
-    baseline_backtest : dict
-        Results from baseline momentum backtest
-    predictions : pd.DataFrame
-        ML model predictions (dates × sectors)
-    actual_returns : pd.DataFrame
-        Actual realized returns (dates × sectors)
-    sector_vol_forecasts : pd.DataFrame
-        GARCH volatility forecasts (dates × sectors)
-    feature_importance : pd.DataFrame
-        Feature importance with std deviations
-    monthly_results_df : pd.DataFrame
-        Monthly backtest results with strategy/baseline returns
-    figures_dir : Path
-        Directory to save all figures
-    """
     figures_dir = Path(figures_dir)
     figures_dir.mkdir(parents=True, exist_ok=True)
     
-    print("\n[STEP 9] Generating figures...")
     
     try:
         fig1_equity_curves(forecast_backtest, baseline_backtest, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig1_equity_curves.png: {e}")
+        print(f"Error generating fig1_equity_curves.png: {e}")
     
     try:
         fig2_prediction_quality(predictions, actual_returns, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig2_prediction_quality.png: {e}")
+        print(f"Error generating fig2_prediction_quality.png: {e}")
     
     try:
         fig3_garch_volatility(sector_vol_forecasts, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig3_garch_volatility.png: {e}")
+        print(f"Error generating fig3_garch_volatility.png: {e}")
     
     try:
         fig4_portfolio_weights(forecast_backtest, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig4_portfolio_weights.png: {e}")
+        print(f"Error generating fig4_portfolio_weights.png: {e}")
     
     try:
         fig5_return_distribution(monthly_results_df, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig5_return_distribution.png: {e}")
+        print(f"Error generating fig5_return_distribution.png: {e}")
     
     try:
         fig6_feature_importance(feature_importance, figures_dir)
     except Exception as e:
-        print(f"  ⚠ Error generating fig6_feature_importance.png: {e}")
+        print(f"Error generating fig6_feature_importance.png: {e}")
     
-    print(f"✓ Figures saved to {figures_dir}")
+

@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore', message='.*joblib workers.*')
 warnings.filterwarnings('ignore', message='.*should be used with.*')
 warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.delayed.*')
 warnings.filterwarnings('ignore', message='.*delayed.*Parallel.*')
-# Explicit list so training and inference are guaranteed to use the same feature order.
+
 SECTOR_FEATURES = [
     "mom_1m",
     "mom_3m",
@@ -58,7 +58,7 @@ def prepare_training_data(
 
     x_list, y_list = [], []
     
-    # Use the first available feature's index (all features should be aligned)
+    
     feature_df = features[SECTOR_FEATURES[0]]
     train_dates = feature_df.index[
         (feature_df.index >= train_start) & (feature_df.index <= train_end)
@@ -91,26 +91,17 @@ def prepare_training_data(
 
 
 def train_with_hyperparameter_tuning(x_train, y_train, random_state=42, verbose=True):
-    """
-    Train Random Forest with RandomizedSearchCV and TimeSeriesSplit.
     
-    Based on research papers:
-    - "Optimizing Random Forest Hyperparameters for Enhanced Stock Price Prediction" (2025)
-    - "Feature Importance Guided Random Forest Learning..." (arXiv 2511.00133)
-    """
-    # Base model
     base_model = RandomForestRegressor(random_state=random_state, n_jobs=-1)
     
-    # TimeSeriesSplit prevents look-ahead bias (crucial for financial data!)
     tscv = TimeSeriesSplit(n_splits=3)
     
-    # RandomizedSearchCV with time-series cross-validation
     search = RandomizedSearchCV(
         estimator=base_model,
         param_distributions=RF_PARAM_DIST,
-        n_iter=20,                    # Try 20 random combinations
-        cv=tscv,                      # Time-series aware CV
-        scoring='neg_mean_squared_error',  # Optimize for MSE
+        n_iter=20,                    
+        cv=tscv,                      
+        scoring='neg_mean_squared_error',  
         n_jobs=-1,
         random_state=random_state,
         verbose=0 if not verbose else 1,
@@ -135,12 +126,12 @@ def run_rolling_predictions(
     train_window_months=48,
     min_training_samples=100,
     random_state=42,
-    use_hyperparameter_tuning=True,  # NEW: Enable/disable tuning
+    use_hyperparameter_tuning=True,  
 ):
-    """Run rolling window predictions using Random Forest with hyperparameter tuning."""
-    print("\n[STEP 4] Training Random Forest...")
+    
+    print("\n[STEP 4] Training Random Forest.")
     if use_hyperparameter_tuning:
-        print("  Using RandomizedSearchCV with TimeSeriesSplit (research-backed tuning)")
+        print("  Using RandomizedSearchCV with TimeSeriesSplit (time-series CV)")
     else:
         print("  Using fixed hyperparameters")
 
@@ -212,11 +203,11 @@ def run_rolling_predictions(
     
     nan_count = predictions_df.isna().sum().sum()
     total_predictions = predictions_df.size
-    print(f"\n✓ Generated predictions for {len(predictions_df)} months")
+    print(f"\nGenerated predictions for {len(predictions_df)} months")
     print(f"  ({nan_count}/{total_predictions} predictions are NaN due to missing data)")
     
     if tuning_results:
-        print(f"\n✓ Hyperparameter tuning completed for {len(tuning_results)} rolling windows")
+        print(f"\nHyperparameter tuning completed for {len(tuning_results)} rolling windows")
         param_counts = {}
         for r in tuning_results:
             for k, v in r['params'].items():
@@ -231,7 +222,6 @@ def run_rolling_predictions(
 
 
 def evaluate_predictions(predictions_df, actual_returns, sector_tickers=SECTOR_TICKERS):
-    """Evaluate prediction accuracy."""
     print("\n" + "=" * 60)
     print("PREDICTION EVALUATION")
     print("=" * 60)
@@ -270,7 +260,6 @@ def evaluate_predictions(predictions_df, actual_returns, sector_tickers=SECTOR_T
 
 
 def test_prediction_value(predictions_df, actual_returns):
-    """Test whether predictions can sort sectors into better/worse future returns."""
     spread_returns = []
     
     for date in predictions_df.index:
@@ -302,15 +291,14 @@ def test_prediction_value(predictions_df, actual_returns):
     print(f"p-value               : {p_value:.4f}")
 
     if p_value < 0.05 and spread_series.mean() > 0:
-        print("✓ Predictions have statistically significant sorting power")
+        print("Predictions have statistically significant sorting power")
     else:
-        print("✗ Predictions cannot sort sectors effectively")
+        print("Predictions cannot sort sectors effectively")
 
     return float(spread_series.mean()), float(p_value)
 
 
 def get_feature_importance(model, feature_names=None):
-    """Get feature importance from trained Random Forest."""
     if feature_names is None:
         feature_names = [
             'mom_1m', 'mom_3m', 'mom_6m', 'mom_12m',
@@ -342,7 +330,6 @@ def calculate_average_feature_importance(
     sector_tickers=SECTOR_TICKERS,
     n_samples=12
 ):
-    """Calculate average feature importance across multiple rolling windows."""
     from sklearn.ensemble import RandomForestRegressor
     
     all_importance = []
@@ -350,7 +337,6 @@ def calculate_average_feature_importance(
     
     sample_dates = test_dates[:min(n_samples, len(test_dates))]
     
-    print(f"\nCalculating feature importance across {len(sample_dates)} rolling windows...")
     
     for i, current_date in enumerate(sample_dates):
         print(f"  Window {i+1}/{len(sample_dates)}: {current_date.strftime('%Y-%m')}")
@@ -419,7 +405,6 @@ def calculate_feature_importance_over_time(
     test_dates, 
     sector_tickers=SECTOR_TICKERS
 ):
-    """Calculate how feature importance evolves over time (for concept drift analysis)."""
     from sklearn.ensemble import RandomForestRegressor
     
     feature_names = [

@@ -220,14 +220,4 @@ The methodology draws from:
 - GARCH models for volatility forecasting in asset management
 - Mean-variance portfolio optimization (Markowitz framework)
 
-## Disclaimer
 
-This is an educational/research project. Past performance is not indicative of future results. Use at your own risk. Always validate strategies with adequate backtesting and live-trading validation.
-
-## License
-
-[Specify your license here]
-
-## Contact
-
-[Add contact info if desired]

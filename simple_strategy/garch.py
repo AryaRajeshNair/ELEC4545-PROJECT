@@ -13,32 +13,16 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings('ignore')
-# Suppress sklearn parallel job warnings
 warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.*')
 warnings.filterwarnings('ignore', message='.*should be used with.*')
 warnings.filterwarnings('ignore', message='.*delayed.*should be used.*')
 warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.delayed.*')
 warnings.filterwarnings('ignore', message='.*delayed.*Parallel.*')
 
-
 # ============================================================================
 # DATA FILTERING UTILITIES
 # ============================================================================
-
 def filter_nonzero_returns(daily_returns, lookback_days=504):
-    """
-    Filter out zero-return periods from daily returns.
-    
-    Zero-return periods (cash/flat positions) cause GARCH convergence issues.
-    This function identifies and removes them to preserve only active trading periods.
-    
-    Args:
-        daily_returns: DataFrame of daily returns
-        lookback_days: Number of lookback days to examine
-    
-    Returns:
-        DataFrame with same structure but zero-return periods filtered out
-    """
     filtered = daily_returns.copy()
     
     for col in filtered.columns:
@@ -55,19 +39,6 @@ def filter_nonzero_returns(daily_returns, lookback_days=504):
 
 
 def filter_active_trading_periods(monthly_returns_df):
-    """
-    Filter out flat/cash periods from monthly returns.
-    
-    In the backtest, many months have gross_ret=0 (portfolio was flat).
-    These zero-return periods poison GARCH estimation.
-    This function removes them before fitting GARCH.
-    
-    Args:
-        monthly_returns_df: DataFrame with 'gross_ret' column (or similar return column)
-    
-    Returns:
-        Filtered DataFrame containing only active trading periods
-    """
     filtered = monthly_returns_df.copy()
     
     if 'gross_ret' in filtered.columns:
@@ -78,7 +49,6 @@ def filter_active_trading_periods(monthly_returns_df):
 
 
 def print_filtering_summary(original_len, filtered_len, sector_tickers):
-    """Print summary of data filtering."""
     removed = original_len - filtered_len
     pct_removed = (removed / original_len * 100) if original_len > 0 else 0
     
@@ -90,33 +60,12 @@ def print_filtering_summary(original_len, filtered_len, sector_tickers):
 
 
 # ============================================================================
-# STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTICS (For Report)
+# STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTICS 
 # ============================================================================
-
 def test_stationarity_comprehensive(daily_returns, sector_tickers, output_file=None):
-    """
-    Comprehensive stationarity test on DAILY RETURNS for report inclusion.
     
-    Tests:
-    1. ADF (Augmented Dickey-Fuller): Tests for stationarity (null: unit root)
-       - p < 0.05 → Reject null → Stationary ✓
-    
-    2. KPSS (Kwiatkowski-Phillips-Schmidt-Shin): Tests for stationarity (null: stationary)
-       - p > 0.05 → Fail to reject null → Stationary ✓
-    
-    3. Ljung-Box on squared returns: Tests for volatility clustering/ARCH effects
-       - p < 0.05 → Reject null → Has ARCH/volatility clustering ✓ (justifies GARCH)
-    
-    Args:
-        daily_returns: DataFrame of DAILY returns (DatetimeIndex x Sectors)
-        sector_tickers: List of sector names
-        output_file: Optional path to save table to CSV
-    
-    Returns:
-        DataFrame with test results and summary dict
-    """
     print("\n" + "=" * 100)
-    print("STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTIC (FOR REPORT)")
+    print("STATIONARITY & VOLATILITY CLUSTERING DIAGNOSTIC")
     print("=" * 100)
     
     results_list = []
@@ -195,14 +144,14 @@ def test_stationarity_comprehensive(daily_returns, sector_tickers, output_file=N
     print(f"  • Volatility clustering (Ljung-Box p < 0.05): {arch_count}/{len(sector_tickers)} sectors ✓")
     
     if stationary_count == len(sector_tickers):
-        print(f"\n  ✓ CONCLUSION: All {len(sector_tickers)} sectors are stationary.")
+        print(f"\n  CONCLUSION: All {len(sector_tickers)} sectors are stationary.")
         print(f"    GARCH modeling is valid and appropriate for volatility forecasting.")
     else:
-        print(f"\n  ⚠ CAUTION: {len(sector_tickers) - stationary_count} sector(s) are non-stationary.")
+        print(f"\n  CAUTION: {len(sector_tickers) - stationary_count} sector(s) are non-stationary.")
         print(f"    Consider differencing or transformation before GARCH modeling.")
     
     if arch_count > 0:
-        print(f"\n  ✓ Volatility clustering detected in {arch_count} sector(s).")
+        print(f"\n  Volatility clustering detected in {arch_count} sector(s).")
         print(f"    This justifies the use of GARCH models for volatility forecasting.")
     
     print("\n" + "=" * 100)
@@ -222,7 +171,6 @@ def test_stationarity_comprehensive(daily_returns, sector_tickers, output_file=N
 # ============================================================================
 # GARCH VOLATILITY FORECASTING WITH MULTI-STEP AGGREGATION
 # ============================================================================
-
 def forecast_sector_volatility_garch(
     daily_returns,
     rebalance_dates,
@@ -233,28 +181,7 @@ def forecast_sector_volatility_garch(
     annualize=True,
     verbose=False,
 ):
-    """
-    Forecast volatility using GARCH(1,1) on DAILY returns with MULTI-STEP AGGREGATION.
     
-    This implements the method from Hlouskova, Schmidheiny, and Wagner (2009):
-    "Multistep predictions for multivariate GARCH models with closed-form solution"
-    
-    Key insight: When rebalancing monthly but using daily data, you need to
-    AGGREGATE daily forecasts over the full horizon, not just scale by sqrt(21).
-    
-    Args:
-        daily_returns: DataFrame of DAILY returns
-        rebalance_dates: Monthly dates when we rebalance
-        sector_tickers: List of sector names
-        lookback_days: Number of daily observations to use
-        min_obs: Minimum observations required for GARCH
-        forecast_horizon_days: Number of trading days to forecast (21 = 1 month)
-        annualize: If True, convert to annualized volatility
-        verbose: Print progress
-    
-    Returns:
-        DataFrame with dates as index and sector volatility forecasts (annualized)
-    """
     print("\n" + "=" * 70)
     print("GARCH MULTI-STEP FORECASTING (Hlouskova et al. 2009)")
     print("=" * 70)
@@ -292,7 +219,6 @@ def forecast_sector_volatility_garch(
                     f"Only {len(history)} daily observations (need {min_obs})"
                 )
             
-            # Clean the data
             returns_clean = history.dropna()
             returns_clean = returns_clean.replace([np.inf, -np.inf], np.nan).dropna()
             
@@ -305,7 +231,7 @@ def forecast_sector_volatility_garch(
             # Scale for numerical stability
             scaled_returns = returns_clean * 100
             
-            # Fit GARCH model (arch library handles optimization automatically)
+            # Fit GARCH model 
             garch_converged = False
             last_error = None
             fitted_model = None
@@ -347,7 +273,7 @@ def forecast_sector_volatility_garch(
         forecasts.append(row)
     
     result_df = pd.DataFrame(forecasts).set_index("date")
-    print(f"\n  ✓ GARCH multi-step forecasts generated for {len(result_df)} months")
+    print(f"\n  GARCH multi-step forecasts generated for {len(result_df)} months")
     
     return result_df
 
@@ -355,22 +281,17 @@ def forecast_sector_volatility_garch(
 # ============================================================================
 # DIAGNOSTICS ON DAILY RETURNS
 # ============================================================================
-
 def run_daily_diagnostics(daily_returns, sector_tickers, output_dir=None):
-    """
-    Run diagnostics on DAILY returns to verify GARCH is appropriate.
-    Includes data quality assessment and filtering analysis.
-    """
     print("\n" + "=" * 80)
     print("GARCH DIAGNOSTICS ON DAILY RETURNS")
     print("=" * 80)
     
-    # Print data quality info
+    
     print(f"\nData Quality Assessment:")
     print(f"  Total observations: {len(daily_returns)}")
     print(f"  Date range: {daily_returns.index.min()} to {daily_returns.index.max()}")
     
-    # Check for zero-return periods
+   
     zero_return_count = 0
     for col in sector_tickers:
         if col in daily_returns.columns:
@@ -410,14 +331,21 @@ def run_daily_diagnostics(daily_returns, sector_tickers, output_dir=None):
         if has_arch:
             arch_count += 1
         print(f"  ARCH-LM p-value: {arch_test[1]:.6f} → {'HAS ARCH' if has_arch else 'NO ARCH'}")
+        results['arch_effects'].append({
+            'sector': sector,
+            'frequency': 'daily',
+            'n_obs': int(len(returns)),
+            'arch_lm_stat': float(arch_test[0]),
+            'arch_lm_pvalue': float(arch_test[1]),
+            'has_arch': bool(has_arch),
+        })
         
-        # Try GARCH
+
         try:
             scaled = returns * 100
             model = arch_model(scaled, vol="GARCH", p=1, q=1, dist="normal")
             fitted = model.fit(disp="off", show_warning=False)
             
-            # Check if fit was successful by examining parameters
             if hasattr(fitted, 'params') and fitted.params is not None and 'alpha[1]' in fitted.params.index:
                 garch_converged += 1
                 alpha = fitted.params.get('alpha[1]', 0)
@@ -449,15 +377,70 @@ def run_daily_diagnostics(daily_returns, sector_tickers, output_dir=None):
 # ============================================================================
 # BACKWARD COMPATIBILITY FUNCTIONS
 # ============================================================================
-
 def get_portfolio_volatility_forecast_no_lookahead(port_returns_series, current_position):
-    """Simple historical volatility for portfolio scaling."""
     historical = port_returns_series.iloc[:current_position].dropna()
     return historical.std() * np.sqrt(12) if len(historical) > 0 else 0.15
 
 
 def full_garch_diagnostics(monthly_returns, sector_tickers, output_dir=None):
-    """Wrapper for backward compatibility."""
-    print("\nNote: full_garch_diagnostics is designed for monthly returns.")
-    print("For daily GARCH, use run_daily_diagnostics() with daily_returns.")
-    return {'summary': {'stationary_count': len(sector_tickers), 'arch_count': 0, 'total_sectors': len(sector_tickers)}}
+    print("\n" + "=" * 80)
+    print("GARCH DIAGNOSTICS ON MONTHLY RETURNS")
+    print("=" * 80)
+
+    results = {
+        'arch_effects': [],
+        'summary': {}
+    }
+
+    tested_sectors = 0
+    arch_count = 0
+
+    for sector in sector_tickers:
+        if sector not in monthly_returns.columns:
+            print(f"\n{sector}: Missing from monthly returns - SKIPPING")
+            continue
+
+        returns = monthly_returns[sector].dropna()
+        returns = returns.replace([np.inf, -np.inf], np.nan).dropna()
+
+        if len(returns) < 24:
+            print(f"\n{sector}: Insufficient data ({len(returns)} months) - SKIPPING")
+            continue
+
+        
+        nlags = min(5, max(1, len(returns) // 6))
+        centered = returns - returns.mean()
+
+        try:
+            arch_test = het_arch(centered, nlags=nlags)
+            pvalue = float(arch_test[1])
+            stat = float(arch_test[0])
+            has_arch = pvalue < 0.05
+            tested_sectors += 1
+            if has_arch:
+                arch_count += 1
+
+            print(f"\n{sector}:")
+            print(f"  ARCH-LM p-value: {pvalue:.6f} (nlags={nlags}) → {'HAS ARCH' if has_arch else 'NO ARCH'}")
+
+            results['arch_effects'].append({
+                'sector': sector,
+                'frequency': 'monthly',
+                'n_obs': int(len(returns)),
+                'nlags': int(nlags),
+                'arch_lm_stat': stat,
+                'arch_lm_pvalue': pvalue,
+                'has_arch': bool(has_arch),
+            })
+        except Exception as e:
+            print(f"\n{sector}: ARCH-LM failed - {str(e)[:80]}")
+
+    results['summary']['arch_count'] = arch_count
+    results['summary']['tested_sectors'] = tested_sectors
+    results['summary']['total_sectors'] = len(sector_tickers)
+
+    print("\n" + "-" * 60)
+    print("SUMMARY FOR MONTHLY RETURNS:")
+    print(f"  ARCH effects: {arch_count}/{tested_sectors} tested sectors")
+
+    return results

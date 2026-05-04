@@ -29,6 +29,7 @@ from simple_strategy.config import (
 from simple_strategy.data_prep import create_features, download_market_data
 from simple_strategy.garch import (
     forecast_sector_volatility_garch,
+    full_garch_diagnostics,
     run_daily_diagnostics,
 )
 from simple_strategy.ml_model import (
@@ -49,7 +50,8 @@ def save_outputs(
     prediction_metrics,
     sorting_metrics,
     feature_importance,
-    garch_diagnostics,
+    daily_garch_diagnostics,
+    monthly_garch_diagnostics,
 ):
     """Save all backtest outputs to CSV and JSON files."""
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -79,9 +81,38 @@ def save_outputs(
     if feature_importance is not None:
         feature_importance.to_csv(RESULTS_DIR / "feature_importance.csv", index=False)
 
-    if garch_diagnostics:
-        garch_summary = pd.DataFrame([garch_diagnostics['summary']])
-        garch_summary.to_csv(RESULTS_DIR / "garch_diagnostics_summary.csv", index=False)
+    if daily_garch_diagnostics:
+        daily_summary = pd.DataFrame([daily_garch_diagnostics.get('summary', {})])
+        daily_summary.to_csv(RESULTS_DIR / "garch_diagnostics_daily_summary.csv", index=False)
+        daily_summary.to_csv(RESULTS_DIR / "garch_diagnostics_summary.csv", index=False)
+
+        daily_arch = pd.DataFrame(daily_garch_diagnostics.get('arch_effects', []))
+        if not daily_arch.empty:
+            daily_arch.to_csv(RESULTS_DIR / "garch_arch_effects_daily.csv", index=False)
+
+    if monthly_garch_diagnostics:
+        monthly_summary = pd.DataFrame([monthly_garch_diagnostics.get('summary', {})])
+        monthly_summary.to_csv(RESULTS_DIR / "garch_diagnostics_monthly_summary.csv", index=False)
+
+        monthly_arch = pd.DataFrame(monthly_garch_diagnostics.get('arch_effects', []))
+        if not monthly_arch.empty:
+            monthly_arch.to_csv(RESULTS_DIR / "garch_arch_effects_monthly.csv", index=False)
+
+    if daily_garch_diagnostics and monthly_garch_diagnostics:
+        daily_arch = pd.DataFrame(daily_garch_diagnostics.get('arch_effects', []))
+        monthly_arch = pd.DataFrame(monthly_garch_diagnostics.get('arch_effects', []))
+        if not daily_arch.empty and not monthly_arch.empty:
+            comparison = (
+                daily_arch[['sector', 'arch_lm_pvalue', 'has_arch']]
+                .rename(columns={'arch_lm_pvalue': 'daily_arch_pvalue', 'has_arch': 'daily_has_arch'})
+                .merge(
+                    monthly_arch[['sector', 'arch_lm_pvalue', 'has_arch']]
+                    .rename(columns={'arch_lm_pvalue': 'monthly_arch_pvalue', 'has_arch': 'monthly_has_arch'}),
+                    on='sector',
+                    how='outer',
+                )
+            )
+            comparison.to_csv(RESULTS_DIR / "garch_arch_effects_comparison.csv", index=False)
 
     metrics = {
         "strategy_sharpe": float(forecast_backtest["sharpe"]),
@@ -115,7 +146,7 @@ def save_outputs(
     
     pd.DataFrame(summary_rows).to_csv(RESULTS_DIR / "backtest_summary_table.csv", index=False)
     
-    print(f"\n✓ Results saved to {RESULTS_DIR}")
+    print(f"\nResults saved to {RESULTS_DIR}")
 
 
 def main():
@@ -133,12 +164,16 @@ def main():
     daily_returns = market_data["daily_close"].pct_change().dropna(how="all")
     
     if len(monthly_returns) == 0:
-        print("ERROR: No data downloaded. Check your internet connection and tickers.")
+        print("ERROR: No data downloaded.")
         return
     
     # Step 1b: Run diagnostics on DAILY returns
     print("\n[STEP 1b] Running GARCH diagnostics on DAILY returns...")
     daily_diagnostics = run_daily_diagnostics(daily_returns, SECTOR_TICKERS, output_dir=FIGURES_DIR)
+
+    # Step 1c: Run diagnostics on MONTHLY returns for comparison
+    print("\n[STEP 1c] Running ARCH diagnostics on MONTHLY returns...")
+    monthly_diagnostics = full_garch_diagnostics(monthly_returns, SECTOR_TICKERS, output_dir=FIGURES_DIR)
     
     # Step 2: Create features
     print("\n[STEP 2] Creating features with technical indicators...")
@@ -178,12 +213,11 @@ def main():
         feature_importance = None
 
     # Step 4: Evaluate predictions
-    print("\n[STEP 4] Evaluating predictions...")
     actual_returns = monthly_returns.reindex(predictions.index)
     prediction_metrics = evaluate_predictions(predictions, actual_returns, sector_tickers=SECTOR_TICKERS)
     sorting_metrics = test_prediction_value(predictions, actual_returns)
 
-    print("\n[STEP 5] Forecasting sector volatilities with GARCH multi-step aggregation...")
+    print("\n[STEP 5] Forecasting sector volatilities with GARCH multi-step aggregation.")
     sector_vol_forecasts = forecast_sector_volatility_garch(
         daily_returns,
         predictions.index,
@@ -196,7 +230,7 @@ def main():
     )
 
     # Step 6: Run backtest
-    print("\n[STEP 6] Running forecast-driven backtest...")
+    print("\n[STEP 6] Running forecast-driven backtest.")
     forecast_backtest = run_forecast_driven_backtest(
         predictions,
         actual_returns,
@@ -220,7 +254,7 @@ def main():
     )
 
     # Step 8: Save outputs
-    print("\n[STEP 8] Saving outputs...")
+    print("\n[STEP 8] Saving outputs.")
     save_outputs(
         forecast_backtest,
         baseline_backtest,
@@ -230,10 +264,11 @@ def main():
         sorting_metrics,
         feature_importance,
         daily_diagnostics,
+        monthly_diagnostics,
     )
 
     # Step 9: Generate figures
-    print("\n[STEP 9] Generating figures...")
+    print("\n[STEP 9] Generating figures.")
     try:
         monthly_results_df = pd.read_csv(
             RESULTS_DIR / "backtest_monthly_results.csv",

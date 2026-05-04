@@ -8,7 +8,6 @@ from simple_strategy.config import SECTOR_TICKERS, START_DATE
 
 
 def rank_normalize(df: pd.DataFrame) -> pd.DataFrame:
-    """Cross-sectional rank normalization (values between -1 and 1)."""
     if df.isna().all().all():
         return pd.DataFrame(0.0, index=df.index, columns=df.columns)
     
@@ -18,7 +17,6 @@ def rank_normalize(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def safe_get(df, date, col=None):
-    """Safely extract a value from a DataFrame or Series."""
     try:
         date = pd.Timestamp(date).normalize()
         
@@ -55,7 +53,6 @@ def safe_get(df, date, col=None):
 
 
 def compute_rsi(prices, period=14):
-    """Compute Relative Strength Index."""
     delta = prices.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
@@ -65,7 +62,6 @@ def compute_rsi(prices, period=14):
 
 
 def compute_macd(prices, fast=12, slow=26, signal=9):
-    """Compute MACD and MACD Signal line."""
     ema_fast = prices.ewm(span=fast, adjust=False).mean()
     ema_slow = prices.ewm(span=slow, adjust=False).mean()
     macd_line = ema_fast - ema_slow
@@ -74,7 +70,6 @@ def compute_macd(prices, fast=12, slow=26, signal=9):
 
 
 def compute_bollinger_bands(prices, period=20, std_dev=2):
-    """Compute Bollinger Bands."""
     sma = prices.rolling(window=period).mean()
     std = prices.rolling(window=period).std()
     upper = sma + (std * std_dev)
@@ -83,7 +78,6 @@ def compute_bollinger_bands(prices, period=20, std_dev=2):
 
 
 def compute_rate_of_change(prices, periods=[1, 3, 6]):
-    """Compute Rate of Change for multiple periods."""
     roc_dict = {}
     for period in periods:
         roc_dict[f"roc_{period}"] = (prices - prices.shift(period)) / prices.shift(period) * 100
@@ -91,13 +85,12 @@ def compute_rate_of_change(prices, periods=[1, 3, 6]):
 
 
 def download_market_data(sector_tickers=SECTOR_TICKERS, start_date=START_DATE, end_date=None):
-    """Download OHLC data for sector ETFs, VIX, and Treasury yields."""
     if end_date is None:
         end_date = pd.Timestamp.today().strftime("%Y-%m-%d")
 
     print(f"Downloading data from {start_date} to {end_date}...")
     
-    # Download sector ETFs with OHLC data (auto_adjust=False to get High/Low)
+    # Download sector ETFs with OHLC data
     data = yf.download(
         sector_tickers,
         start=start_date,
@@ -132,7 +125,6 @@ def download_market_data(sector_tickers=SECTOR_TICKERS, start_date=START_DATE, e
             daily_volume[ticker] = pd.NA
 
     # Download VIX and TNX
-    print("Downloading VIX and TNX...")
     vix = yf.download("^VIX", start=start_date, end=end_date, progress=False)["Close"]
     tnx = yf.download("^TNX", start=start_date, end=end_date, progress=False)["Close"]
 
@@ -150,7 +142,7 @@ def download_market_data(sector_tickers=SECTOR_TICKERS, start_date=START_DATE, e
     monthly_tnx = tnx.resample("ME").last()
     monthly_tnx = monthly_tnx.reindex(monthly_returns.index).ffill()
 
-    # Remove any rows with all NaN returns
+   
     monthly_returns = monthly_returns.dropna(how="all")
 
     print(f"Data downloaded: {len(monthly_returns)} months of returns")
@@ -178,21 +170,7 @@ def create_features(
     monthly_tnx,
     min_periods=12,
 ):
-    """
-    Create features including technical indicators.
-    
-    Args:
-        monthly_close: DataFrame of monthly closing prices
-        monthly_returns: DataFrame of monthly returns
-        monthly_vix: Series of VIX values
-        monthly_tnx: Series of TNX values
-        min_periods: Minimum periods for expanding window
-    
-    Returns:
-        features: Dictionary of feature DataFrames
-        vix_norm: Normalized VIX Series
-        tnx_norm: Normalized TNX Series
-    """
+   
     features = {}
     
     # ========================================================================
@@ -279,7 +257,6 @@ def create_features(
     return features, vix_norm, tnx_norm
 
 
-# we do not use the vix and tnx features for this project but do prepare them for future work, using macro features in the model
 def prepare_features_for_ml(features, vix_norm, tnx_norm):
     """Prepare features for machine learning by aligning all data."""
     common_index = features["mom_1m"].index
@@ -295,7 +272,6 @@ def prepare_features_for_ml(features, vix_norm, tnx_norm):
 
 
 def validate_data(data_dict):
-    """Validate that downloaded data is complete and has no major issues."""
     monthly_returns = data_dict["monthly_returns"]
     
     print("\n" + "=" * 60)

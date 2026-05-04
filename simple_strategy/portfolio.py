@@ -20,7 +20,7 @@ from simple_strategy.garch import get_portfolio_volatility_forecast_no_lookahead
 
 
 def equal_weights(index_like):
-    """Return equal weights for all assets."""
+    
     n_assets = len(index_like)
     if n_assets == 0:
         return pd.Series(dtype=float)
@@ -28,7 +28,7 @@ def equal_weights(index_like):
 
 
 def estimate_covariance_matrix(returns_df, current_date, lookback_months=DEFAULT_LOOKBACK_MONTHS, min_obs=DEFAULT_MIN_OBS):
-    """Estimate covariance matrix from historical returns."""
+    
     current_date = pd.Timestamp(current_date).normalize()
     end_date = current_date - pd.DateOffset(months=1)
     start_date = end_date - pd.DateOffset(months=lookback_months)
@@ -44,14 +44,14 @@ def estimate_covariance_matrix(returns_df, current_date, lookback_months=DEFAULT
         cov = pd.DataFrame(np.eye(len(SECTOR_TICKERS)), index=SECTOR_TICKERS, columns=SECTOR_TICKERS)
     cov = cov.reindex(index=SECTOR_TICKERS, columns=SECTOR_TICKERS).fillna(0.0)
     
-    # FIX: Convert to numpy array and back to avoid read-only issue
+    
     cov_values = cov.values.copy()
     cov_values = cov_values + np.eye(len(SECTOR_TICKERS)) * 1e-6
     cov = pd.DataFrame(cov_values, index=cov.index, columns=cov.columns)
     return cov
 
 def estimate_correlation_matrix(returns_df, current_date, lookback_months=DEFAULT_LOOKBACK_MONTHS, min_obs=DEFAULT_MIN_OBS):
-    """Estimate correlation matrix from historical returns."""
+    
     current_date = pd.Timestamp(current_date).normalize()
     end_date = current_date - pd.DateOffset(months=1)
     start_date = end_date - pd.DateOffset(months=lookback_months)
@@ -75,7 +75,7 @@ def estimate_correlation_matrix(returns_df, current_date, lookback_months=DEFAUL
 
 
 def build_covariance_from_forecasts(returns_df, current_date, forecast_vols, lookback_months=DEFAULT_LOOKBACK_MONTHS, min_obs=DEFAULT_MIN_OBS):
-    """Build covariance matrix using forecasted volatilities and historical correlations."""
+    
     corr = estimate_correlation_matrix(returns_df, current_date, lookback_months=lookback_months, min_obs=min_obs)
     vols = forecast_vols.reindex(corr.index).fillna(0.0)
     
@@ -101,7 +101,7 @@ def optimize_portfolio(
     target_vol=None,
     use_equal_weight_fallback=False,
 ):
-    """Optimize portfolio weights using mean-variance optimization."""
+    
     tickers = list(expected_returns.index)
     mu = expected_returns.reindex(tickers).fillna(0.0).to_numpy(dtype=float)
     cov = covariance_matrix.reindex(index=tickers, columns=tickers).fillna(0.0).to_numpy(dtype=float)
@@ -187,7 +187,7 @@ def optimize_portfolio(
 
 
 def run_simple_momentum_backtest(actual_returns, monthly_returns, sector_tickers=SECTOR_TICKERS, lookback=6, use_vol_scaling=True):
-    """Simple momentum backtest for comparison."""
+    
     portfolio_value = 1.0
     returns_list = []
     port_ret_history = []
@@ -231,7 +231,7 @@ def run_simple_momentum_backtest(actual_returns, monthly_returns, sector_tickers
 
 
 def run_backtest(predictions, actual_returns, monthly_returns, sector_tickers=SECTOR_TICKERS, use_vol_scaling=True):
-    """Original backtest with volatility scaling."""
+    
     portfolio_value = 1.0
     equity_curve = [1.0]
     returns_list = []
@@ -316,7 +316,7 @@ def run_forecast_driven_backtest(
     target_vol=DEFAULT_TARGET_VOL,
     risk_aversion=OPTIMIZER_RISK_AVERSION,
 ):
-    """Backtest with volatility forecasts integrated into portfolio optimization."""
+    
     portfolio_value = 1.0
     equity_curve = [1.0]
     returns_list = []
