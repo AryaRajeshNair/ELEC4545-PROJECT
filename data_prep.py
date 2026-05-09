@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-from simple_strategy.config import SECTOR_TICKERS, START_DATE
+from config import SECTOR_TICKERS, START_DATE
 
 
 def rank_normalize(df: pd.DataFrame) -> pd.DataFrame:

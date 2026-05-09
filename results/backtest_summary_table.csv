@@ -1,0 +1,10 @@
+Metric,Value
+Strategy Sharpe,0.8927389517289339
+Strategy Max Drawdown,-0.10405248862086847
+Strategy Win Rate,0.6052631578947368
+Strategy Total Return %,92.2602073916016
+Baseline Sharpe,0.7559290599074441
+Directional Accuracy,0.5753588516746412
+Prediction Correlation,0.04221013918587675
+Prediction Sorting Spread %,0.17696257523834794
+Prediction Sorting p-value,0.7279169947609292

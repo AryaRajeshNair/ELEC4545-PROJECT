@@ -6,8 +6,8 @@ from scipy import stats
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 
-from simple_strategy.config import SECTOR_TICKERS
-from simple_strategy.data_prep import safe_get
+from config import SECTOR_TICKERS
+from data_prep import safe_get
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', message='.*sklearn.utils.parallel.*')

@@ -289,7 +289,7 @@ def fig4_portfolio_weights(forecast_backtest, figures_dir):
         plt.close(fig)
         return
     
-    from simple_strategy.config import SECTOR_TICKERS
+    from config import SECTOR_TICKERS
    
     sector_cols = [s for s in SECTOR_TICKERS if s in trade_log.columns]
     

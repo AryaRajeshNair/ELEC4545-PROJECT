@@ -13,7 +13,7 @@ import json
 import pandas as pd
 import numpy as np
 
-from simple_strategy.config import (
+from config import (
     ALLOW_SHORT,
     DEFAULT_MAX_WEIGHT,
     DEFAULT_MIN_WEIGHT,
@@ -26,20 +26,20 @@ from simple_strategy.config import (
     TRAIN_WINDOW_MONTHS,
     FIGURES_DIR,
 )
-from simple_strategy.data_prep import create_features, download_market_data
-from simple_strategy.garch import (
+from data_prep import create_features, download_market_data
+from garch import (
     forecast_sector_volatility_garch,
     full_garch_diagnostics,
     run_daily_diagnostics,
 )
-from simple_strategy.ml_model import (
+from ml_model import (
     calculate_average_feature_importance,
     evaluate_predictions,
     run_rolling_predictions,
     test_prediction_value,
 )
-from simple_strategy.portfolio import run_forecast_driven_backtest, run_simple_momentum_backtest
-from simple_strategy.figures import generate_all_figures
+from portfolio import run_forecast_driven_backtest, run_simple_momentum_backtest
+from figures import generate_all_figures
 
 
 def save_outputs(

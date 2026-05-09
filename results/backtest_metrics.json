@@ -1,0 +1,14 @@
+{
+  "strategy_sharpe": 0.8927389517289339,
+  "strategy_max_drawdown": -0.10405248862086847,
+  "strategy_win_rate": 0.6052631578947368,
+  "strategy_total_return_pct": 92.2602073916016,
+  "baseline_sharpe": 0.7559290599074441,
+  "baseline_max_drawdown": -0.19825921336282248,
+  "baseline_win_rate": 0.631578947368421,
+  "baseline_total_return_pct": 100.64771968444326,
+  "directional_accuracy": 0.5753588516746412,
+  "prediction_correlation": 0.04221013918587675,
+  "prediction_sorting_spread_pct": 0.17696257523834794,
+  "prediction_sorting_p_value": 0.7279169947609292
+}
